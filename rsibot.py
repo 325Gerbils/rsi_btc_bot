@@ -8,10 +8,11 @@ import matplotlib.pyplot as plt
 # variables
 ctr = 0
 
-# functions
+# pretty-print numbers (fix to 2 decimal places) as string
 def fmt(input):
     return str('{0:.2f}'.format(input))
 
+# for calculating percents
 def get_change(current, previous):
     if current == previous:
         return 0
@@ -83,6 +84,7 @@ while True:
     plt.text(0, 90, "Price: " + str(last_price))
     
     # determine to buy or sell
+    # lol rsi is easy
     
     # Sell
     if last_rsi > 70:
