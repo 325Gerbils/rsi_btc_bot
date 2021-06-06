@@ -24,7 +24,7 @@ def get_change(current, previous):
 print('starting...')
 
 # log in to robinhood
-rs.login(username="benjamincooley81@gmail.com",
+rs.login(username="youremail@here.com",
          password="",
          expiresIn=86400,
          by_sms=True)
