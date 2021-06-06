@@ -110,16 +110,21 @@ while True:
     # wait 5 seconds...
     sleep(5)
 
-exit()  # testing
 
-try:
-    while True:
-        # get available buying power
-        crypto_buying_power = float(
-            rs.profiles.load_account_profile(info='crypto_buying_power'))
 
-        # get current BTC price
-        btc_price = float(rs.crypto.get_crypto_quote('BTC', info='mark_price'))
+# ----------------------------------------------------------------
+# Code from old dcabot, will eventually use some for the buy/sell api & ux
+
+# exit()  # testing
+
+# try:
+#     while True:
+#         # get available buying power
+#         crypto_buying_power = float(
+#             rs.profiles.load_account_profile(info='crypto_buying_power'))
+
+#         # get current BTC price
+#         btc_price = float(rs.crypto.get_crypto_quote('BTC', info='mark_price'))
 
         # if crypto_buying_power > 10:
 
@@ -155,10 +160,10 @@ try:
 
         # sleep(86400)
 
-except Exception as err:
-    notification.notify(
-        title='dcabot error!',
-        message=str(err),
-        app_icon='bitcoin.ico',
-        timeout=30
-    )
+# except Exception as err:
+#     notification.notify(
+#         title='dcabot error!',
+#         message=str(err),
+#         app_icon='bitcoin.ico',
+#         timeout=30
+#     )
