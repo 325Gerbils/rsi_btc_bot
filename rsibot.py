@@ -8,19 +8,28 @@ import seaborn
 import threading
 import os
 import pickle
+import psutil, gc, sys
 
 # variables
 ctr = 0
 rsi_period = 14
 n_prices = 100
-delay_time = 2
 triggered = False
 over_70_line = False
 btc_prices = []
-startup_time = 15
+startup_time = 25
 savefile = 'save.pkl'
+initial_acct_value = 0
+
+rsi_top = 69
+rsi_bottom = 31
+
+delay_time = 5
+amount_per_trade_usd = 5.00
 
 # for calculating percents
+
+
 def get_change(current, previous):
     if current == previous:
         return 0
@@ -30,6 +39,8 @@ def get_change(current, previous):
         return float('inf')
 
 # for the "loop"
+
+
 def set_interval(func, sec):
     def func_wrapper():
         set_interval(func, sec)
@@ -39,24 +50,42 @@ def set_interval(func, sec):
     return t
 
 # buy and sell functions
-def buy(fig):
-    global ctr, startup_time
+
+
+def buy():
+    global ctr, startup_time, amount_per_trade_usd, fig
     if ctr < startup_time:
         print("not buying - bot started too recently")
         return
-    print("buying")
-    fig.patch.set_facecolor('xkcd:mint green')
     plt.text(45, 24, "BUY!")
 
+    crypto_buying_power = float(
+        rs.profiles.load_account_profile(info='crypto_buying_power'))
+    if crypto_buying_power < amount_per_trade_usd + 1:
+        print("not enough buying power to place trade!")
+        return
+    # print("Placing trade....")
+    # rs.orders.order_buy_crypto_by_price('BTC', amount_per_trade_usd, timeInForce='gtc')
+    # print("done!!!")
 
-def sell(fig):
-    global ctr, startup_time
+
+def sell():
+    global ctr, startup_time, amount_per_trade_usd, fig
     if ctr < startup_time:
         print("not selling - bot started too recently")
         return
-    print("selling")
-    fig.patch.set_facecolor('xkcd:salmon')
     plt.text(45, 74, "SELL!")
+
+    last_price = float(rs.crypto.get_crypto_quote('BTC', info='mark_price'))
+    held_btc = float([item for item in rs.crypto.get_crypto_positions(
+        info=None) if item['currency']['code'] == 'BTC'][0]['quantity_available'])
+    if held_btc*last_price < amount_per_trade_usd + 1:
+        print("not enough bitcoin to place trade!")
+        return
+    # print("Placing trade....")
+    # rs.orders.order_sell_crypto_by_price('BTC', amount_per_trade_usd, timeInForce='gtc')
+    # print("done!!!")
+
 
 # for aesthetic
 def hide_lines(ax):
@@ -67,10 +96,27 @@ def hide_lines(ax):
     # ax.get_xaxis().set_ticks([])
     # ax.get_yaxis().set_ticks([])
 
+# for debugging memory
+def actual_size(input_obj):
+    memory_size = 0
+    ids = set()
+    objects = [input_obj]
+    while objects:
+        new = []
+        for obj in objects:
+            if id(obj) not in ids:
+                ids.add(id(obj))
+                memory_size += sys.getsizeof(obj)
+                new.append(obj)
+        objects = gc.get_referents(*new)
+    return memory_size
+
 # entry point
+
+
 def start():
     print('starting...')
-    global ctr, rsi_period, n_prices, delay_time, triggered, over_70_line, btc_prices
+    global ctr, rsi_period, n_prices, delay_time, triggered, over_70_line, btc_prices, initial_acct_value
 
     # log in to robinhood
     rs.login(username="benjamincooley81@gmail.com",
@@ -80,9 +126,12 @@ def start():
     print('logged in')
 
     # data stuff
+    last_price = float(rs.crypto.get_crypto_quote('BTC', info='mark_price'))
+    held_btc = float([item for item in rs.crypto.get_crypto_positions(
+        info=None) if item['currency']['code'] == 'BTC'][0]['quantity_available'])
     crypto_buying_power = float(
         rs.profiles.load_account_profile(info='crypto_buying_power'))
-    last_price = float(rs.crypto.get_crypto_quote('BTC', info='mark_price'))
+    initial_acct_value = held_btc * last_price + crypto_buying_power
 
     # get initial history
     if os.path.exists(savefile):
@@ -97,8 +146,15 @@ def start():
             'BTC', interval='15second', span='hour', bounds='24_7', info=None)
         btc_prices = np.array(
             [last_price for item in rh_btc_history])
+        
+    # set up plots
+    global fig, ax1, ax2
+    fig, ax1 = plt.subplots()
+    ax2 = ax1.twinx()
 
 # infinite loop
+
+
 def main():
 
     # python is weird
@@ -115,7 +171,26 @@ def main():
         print('saving updated data')
         pickle.dump(btc_prices, f, protocol=pickle.HIGHEST_PROTOCOL)
 
-    differences = np.diff(btc_prices)
+    # crypto_buying_power = float(rs.profiles.load_account_profile(info='crypto_buying_power'))
+    # print('crypto buying power: ', str(crypto_buying_power))
+    # cbp_in_btc = crypto_buying_power/last_price
+    # print('crypto buying power in btc: ' + str(cbp_in_btc))
+
+    # held_btc = float([item for item in rs.crypto.get_crypto_positions(info=None) if item['currency']['code'] == 'BTC'][0]['quantity_available'])
+    # print('held btc: ' + str(held_btc))
+    # held_btc_in_usd = last_price*held_btc
+    # print('held btc in usd: ' + str(held_btc_in_usd))
+
+    # current_acct_value = held_btc * last_price + crypto_buying_power
+    # profit = current_acct_value - initial_acct_value
+    # print('current acct value: ' + str(current_acct_value))
+    # print('initial acct value: ' + str(initial_acct_value))
+    # print('profit since bot restarted: ' + str(profit))
+
+    # for help writing this
+    # cost_basis = [item for item in rs.crypto.get_crypto_positions(info=None) if item['currency']['code'] == 'BTC'][0]['cost_bases'][0]
+
+    # differences = np.diff(btc_prices)
     # python is weird
     # diff_percent = list(fmt(100-get_change(d, p))
     #                     for (p, d) in list(zip(btc_prices, differences)))
@@ -128,7 +203,6 @@ def main():
     # just in case you don't clip it off with n_prices<len(rsi)
     rsi = np.concatenate((np.zeros(rsi_period), rsi))
 
-    # set up plots
     fig, ax1 = plt.subplots()
     ax2 = ax1.twinx()
 
@@ -144,9 +218,10 @@ def main():
 
     # draw the data and rsi lines
     btc_line = ax1.plot(btc_prices[-n_prices:], linestyle='dotted',
-             color='r', label="Price: " + str('{0:.2f}'.format(last_price)))
+                        color='r', label="Price: " + str('{0:.2f}'.format(last_price)))
 
-    rsi_line = ax2.plot(rsi[-n_prices:], color='g', label="RSI: " + str('{0:.2f}'.format(last_rsi)))
+    rsi_line = ax2.plot(rsi[-n_prices:], color='g',
+                        label="RSI: " + str('{0:.2f}'.format(last_rsi)))
 
     ax2.axhline(70, 0, 1)
     ax2.axhline(30, 0, 1)
@@ -159,7 +234,8 @@ def main():
     labels = [l.get_label() for l in lines]
     plt.legend(lines, labels, loc='upper left')
 
-    ax1.set_xlabel('history · each datum is 2s apart, right side is now')
+    ax1.set_xlabel('history · each datum is ' +
+                   str(delay_time)+'s apart, right side is now')
     # ax1.set_ylabel('bitcoin price (USD)')
     # ax2.set_ylabel('RSI')
 
@@ -175,26 +251,26 @@ def main():
     # lol rsi is easy
 
     # Sell trigger...
-    if last_rsi >= 70:
+    if last_rsi >= rsi_top:
         triggered = True
         over_70_line = True
-
         print('triggered... rsi:' + str('{0:.2f}'.format(last_rsi)) +
               ' price:' + str('{0:.2f}'.format(last_price)) + '\n')
 
     # Buy trigger...
-    elif last_rsi <= 30:
+    elif last_rsi <= rsi_bottom:
         triggered = True
         over_70_line = False
-
         print('triggered... rsi:' + str('{0:.2f}'.format(last_rsi)) +
               ' price:' + str('{0:.2f}'.format(last_price)) + '\n')
 
     # if rsi is this far out of range, just.... do it
-    elif last_rsi < 25:
-        buy(fig)
-    elif last_rsi > 75:
-        sell(fig)
+    elif last_rsi >= rsi_top+5:
+        buy()
+        fig.patch.set_facecolor('xkcd:mint green')
+    elif last_rsi <= rsi_bottom-5:
+        sell()
+        fig.patch.set_facecolor('xkcd:salmon')
 
     # when coming back over the line from >70 or <30,
     # THEN actually buy/sell depending on which line it crossed
@@ -202,33 +278,46 @@ def main():
         if triggered:
             triggered = False
             if over_70_line:
-                sell(fig)
+                sell()
+                fig.patch.set_facecolor('xkcd:salmon')
             else:
-                buy(fig)
-
-    # if triggered:
-    #     if rsi[-1]-rsi[-2] != abs(rsi[-1]-rsi[-2]) and over_70_line:
-    #         triggered = False
-    #         sell(fig)
-    #     elif rsi[-1]-rsi[-2] == abs(rsi[-1]-rsi[-2]):
-    #         triggered = False
-    #         buy(fig)
+                buy()
+                fig.patch.set_facecolor('xkcd:mint green')
 
     # save plots
     # print("saving figure out-"+str(ctr)+".png")
-    # plt.savefig("data/out-"+str(ctr)+".png")
+
+    if ctr > startup_time:
+        plt.savefig("../data/out-"+str(ctr)+".png")
+
     print("Saving last figure...")
     plt.savefig("../last-out.png")
 
-    # upkeep
-    plt.close(fig)
+    mem_use = str('{0:.2f}'.format(psutil.Process(
+        os.getpid()).memory_info().rss / 1024 ** 2))
+    
+    print('memory use: ' + mem_use + 'MB')
+    fig.text(0, 2, mem_use + ' MB')
+    # print(fig)
+
+    # fig.clear()
+    # plt.clf()
+    # plt.close(fig)
+    # gc.collect()
+    ax1.cla()
+    ax2.cla()
+
     print("Done with loop "+str(ctr)+"\n")
     ctr += 1
 
 
 # Run the thing
 start()
-set_interval(main, delay_time)
+
+# no more threads
+while True:
+    main()
+    sleep(delay_time)
 
 # ----------------------------------------------------------------
 # Code from old dcabot, will eventually use some for the buy/sell api & ux
