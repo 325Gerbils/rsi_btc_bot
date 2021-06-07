@@ -4,6 +4,7 @@ import numpy as np
 from time import sleep
 from plyer import notification
 import matplotlib.pyplot as plt
+import seaborn
 import threading
 import os
 import pickle
@@ -16,7 +17,7 @@ delay_time = 2
 triggered = False
 over_70_line = False
 btc_prices = []
-startup_time = 50
+startup_time = 15
 savefile = 'save.pkl'
 
 # for calculating percents
@@ -57,6 +58,14 @@ def sell(fig):
     fig.patch.set_facecolor('xkcd:salmon')
     plt.text(45, 74, "SELL!")
 
+# for aesthetic
+def hide_lines(ax):
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.spines['bottom'].set_visible(False)
+    ax.spines['left'].set_visible(False)
+    # ax.get_xaxis().set_ticks([])
+    # ax.get_yaxis().set_ticks([])
 
 # entry point
 def start():
@@ -123,10 +132,13 @@ def main():
     fig, ax1 = plt.subplots()
     ax2 = ax1.twinx()
 
+    hide_lines(ax1)
+    hide_lines(ax2)
+
     # haha
     # plt.title('Cashapp: $325gerbils')
     if ctr < startup_time:
-        plt.title('rsibot is starting up...dont trade\n')
+        plt.title('rsibot is starting back up...dont trade yet\n')
     else:
         plt.title('rsibot · cashapp: $325gerbils\n')
 
@@ -148,8 +160,8 @@ def main():
     plt.legend(lines, labels, loc='upper left')
 
     ax1.set_xlabel('history · each datum is 2s apart, right side is now')
-    ax1.set_ylabel('bitcoin price (USD)')
-    ax2.set_ylabel('RSI')
+    # ax1.set_ylabel('bitcoin price (USD)')
+    # ax2.set_ylabel('RSI')
 
     #  also print it
     print(str(last_rsi))
@@ -179,9 +191,9 @@ def main():
               ' price:' + str('{0:.2f}'.format(last_price)) + '\n')
 
     # if rsi is this far out of range, just.... do it
-    elif last_rsi < 20:
+    elif last_rsi < 25:
         buy(fig)
-    elif last_rsi > 80:
+    elif last_rsi > 75:
         sell(fig)
 
     # when coming back over the line from >70 or <30,
@@ -193,6 +205,14 @@ def main():
                 sell(fig)
             else:
                 buy(fig)
+
+    # if triggered:
+    #     if rsi[-1]-rsi[-2] != abs(rsi[-1]-rsi[-2]) and over_70_line:
+    #         triggered = False
+    #         sell(fig)
+    #     elif rsi[-1]-rsi[-2] == abs(rsi[-1]-rsi[-2]):
+    #         triggered = False
+    #         buy(fig)
 
     # save plots
     # print("saving figure out-"+str(ctr)+".png")
