@@ -17,14 +17,15 @@ n_prices = 100
 triggered = False
 over_70_line = False
 btc_prices = []
-startup_time = 25
+startup_time = 5
+kill_time = 350 # 400 max
 savefile = 'save.pkl'
 initial_acct_value = 0
 
 rsi_top = 69
 rsi_bottom = 31
 
-delay_time = 5
+delay_time = 2
 amount_per_trade_usd = 5.00
 
 # for calculating percents
@@ -57,7 +58,7 @@ def buy():
     if ctr < startup_time:
         print("not buying - bot started too recently")
         return
-    plt.text(45, 24, "BUY!")
+    plt.text(45, 90, "BUY!")
 
     crypto_buying_power = float(
         rs.profiles.load_account_profile(info='crypto_buying_power'))
@@ -74,7 +75,7 @@ def sell():
     if ctr < startup_time:
         print("not selling - bot started too recently")
         return
-    plt.text(45, 74, "SELL!")
+    plt.text(45, 90, "SELL!")
 
     last_price = float(rs.crypto.get_crypto_quote('BTC', info='mark_price'))
     held_btc = float([item for item in rs.crypto.get_crypto_positions(
@@ -212,13 +213,13 @@ def main():
     # haha
     # plt.title('Cashapp: $325gerbils')
     if ctr < startup_time:
-        plt.title('rsibot is starting back up...dont trade yet\n')
+        plt.title('rsibot is restarting...dont trade yet\n')
     else:
-        plt.title('rsibot · cashapp: $325gerbils\n')
+        plt.title('bitcoin rsibot · cashapp: $325gerbils\n')
 
     # draw the data and rsi lines
     btc_line = ax1.plot(btc_prices[-n_prices:], linestyle='dotted',
-                        color='r', label="Price: " + str('{0:.2f}'.format(last_price)))
+                        color='r', label="btc price: " + str('{0:.2f}'.format(last_price)))
 
     rsi_line = ax2.plot(rsi[-n_prices:], color='g',
                         label="RSI: " + str('{0:.2f}'.format(last_rsi)))
@@ -287,8 +288,8 @@ def main():
     # save plots
     # print("saving figure out-"+str(ctr)+".png")
 
-    if ctr > startup_time:
-        plt.savefig("../data/out-"+str(ctr)+".png")
+    # if ctr > startup_time:
+    #     plt.savefig("../data/out-"+str(ctr)+".png")
 
     print("Saving last figure...")
     plt.savefig("../last-out.png")
@@ -297,18 +298,22 @@ def main():
         os.getpid()).memory_info().rss / 1024 ** 2))
     
     print('memory use: ' + mem_use + 'MB')
-    fig.text(0, 2, mem_use + ' MB')
+    plt.text(0, 2, mem_use + ' MB')
     # print(fig)
 
     # fig.clear()
-    # plt.clf()
-    # plt.close(fig)
-    # gc.collect()
-    ax1.cla()
-    ax2.cla()
+    plt.clf()
+    plt.close(fig)
+    gc.collect()
+    # ax1.cla()
+    # ax2.cla()
 
     print("Done with loop "+str(ctr)+"\n")
     ctr += 1
+    # i cant figure out the memory bug so just restart the script every kill_time iterations (it dies in the ~400s range)
+    if ctr > kill_time:
+        print("Restarting ...")
+        os.execv(sys.executable, ['python'] + sys.argv)
 
 
 # Run the thing
