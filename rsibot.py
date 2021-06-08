@@ -289,10 +289,10 @@ def main():
     # print("saving figure out-"+str(ctr)+".png")
 
     # if ctr > startup_time:
-    #     plt.savefig("../data/out-"+str(ctr)+".png")
+    #     plt.savefig("server/data/out-"+str(ctr)+".png")
 
     print("Saving last figure...")
-    plt.savefig("../last-out.png")
+    plt.savefig("server/last-out.png")
 
     mem_use = str('{0:.2f}'.format(psutil.Process(
         os.getpid()).memory_info().rss / 1024 ** 2))
